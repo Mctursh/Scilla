@@ -26,8 +26,8 @@ impl StakeCommand {
             StakeCommand::Show => todo!(),
             StakeCommand::History => todo!(),
             StakeCommand::GoBack => {
-                return Ok(CommandExec::GoBack);
+                Ok(CommandExec::GoBack)
             }
-        };
+        }
     }
 }

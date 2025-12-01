@@ -48,7 +48,7 @@ impl Command {
             Command::Account(account_command) => account_command.process_command(ctx).await,
             Command::Vote(_vote_command) => todo!(),
             Command::ScillaConfig(_config_command) => todo!(),
-            Command::Exit => return Ok(CommandExec::Exit),
+            Command::Exit => Ok(CommandExec::Exit),
         }
     }
 }
