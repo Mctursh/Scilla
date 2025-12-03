@@ -71,5 +71,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-test-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-test-
       - name: Test
         run: make test

@@ -28,6 +28,7 @@ build:
 	@cargo build
 
 test:
+	@$(MAKE) build
 	@cargo test --all-features
 
 # Run all checks in sequence
