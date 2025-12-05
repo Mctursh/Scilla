@@ -1,11 +1,13 @@
 use {
     crate::{
-        commands::CommandExec, constants::LAMPORTS_PER_SOL, context::ScillaContext,
-        error::ScillaResult, prompt::prompt_data, ui::show_spinner,
+        commands::CommandExec, context::ScillaContext, error::ScillaResult,
+        misc::helpers::lamports_to_sol, prompt::prompt_data, ui::show_spinner,
     },
     comfy_table::{Cell, Table, presets::UTF8_FULL},
     console::style,
+    inquire::Select,
     solana_pubkey::Pubkey,
+    solana_rpc_client_api::config::{RpcLargestAccountsConfig, RpcLargestAccountsFilter},
     solana_signature::Signature,
 };
 
@@ -20,10 +22,6 @@ pub enum AccountCommand {
     LargestAccounts,
     NonceAccount,
     GoBack,
-}
-
-fn lamports_to_sol(lamports: u64) -> f64 {
-    lamports as f64 / LAMPORTS_PER_SOL as f64
 }
 
 impl AccountCommand {
@@ -162,11 +160,21 @@ async fn confirm_transaction(ctx: &ScillaContext, signature: &Signature) -> anyh
 }
 
 async fn fetch_largest_accounts(ctx: &ScillaContext) -> anyhow::Result<()> {
-    use solana_rpc_client_api::config::RpcLargestAccountsConfig;
+    let filter_choice = Select::new(
+        "Filter accounts by:",
+        vec!["All", "Circulating", "Non-Circulating"],
+    )
+    .prompt()?;
+
+    let filter = match filter_choice {
+        "Circulating" => Some(RpcLargestAccountsFilter::Circulating),
+        "Non-Circulating" => Some(RpcLargestAccountsFilter::NonCirculating),
+        _ => None,
+    };
 
     let config = RpcLargestAccountsConfig {
-        commitment: None,
-        filter: None,
+        commitment: Some(ctx.rpc().commitment()),
+        filter,
         sort_results: Some(true),
     };
 
