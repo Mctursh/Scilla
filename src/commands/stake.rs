@@ -292,7 +292,7 @@ async fn process_merge_stake(
     source_stake_account_pubkey: Pubkey,
 ) -> anyhow::Result<()> {
     // checks for unique pubkeys
-    if &destination_stake_account_pubkey == &source_stake_account_pubkey {
+    if destination_stake_account_pubkey == source_stake_account_pubkey {
         bail!(
             "Destination Stake Account {} & Source Stake Account {} must not be the same",
             destination_stake_account_pubkey,
@@ -358,28 +358,26 @@ async fn process_merge_stake(
             // CHECK: Verify authority for initialized source
             if meta.authorized.staker != stake_authority_keypair.pubkey() {
                 bail!(
-                    "Provided keypair is not the stake authority for source account\n\
-                     Expected: {}\n\
-                     Provided: {}",
+                    "Provided keypair is not the stake authority for source account\nExpected: \
+                     {}\nProvided: {}",
                     meta.authorized.staker,
                     stake_authority_keypair.pubkey()
                 );
             }
-            
+
             (meta, None)
         }
         StakeStateV2::Stake(meta, stake, _) => {
             // CHECK: Verify authority for delegated source
             if meta.authorized.staker != stake_authority_keypair.pubkey() {
                 bail!(
-                    "Provided keypair is not the stake authority for source account\n\
-                     Expected: {}\n\
-                     Provided: {}",
+                    "Provided keypair is not the stake authority for source account\nExpected: \
+                     {}\nProvided: {}",
                     meta.authorized.staker,
                     stake_authority_keypair.pubkey()
                 );
             }
-            
+
             // CHECK: Source must not be deactivating
             if stake.delegation.deactivation_epoch != u64::MAX {
                 bail!(
@@ -387,7 +385,7 @@ async fn process_merge_stake(
                     stake.delegation.deactivation_epoch
                 );
             }
-            
+
             (meta, Some(&stake.delegation))
         }
         _ => bail!("Source stake account is not in a valid state"),
@@ -406,10 +404,22 @@ async fn process_merge_stake(
     println!(
         "{}\n{}\n{}\n{}\n{}\n{}",
         style("Stake Delegated successfully!").yellow().bold(),
-        style(format!("Destination Stake Account: {}", destination_stake_account_pubkey)).yellow(),
-        style(format!("Source Stake Account: {}", source_stake_account_pubkey)).yellow(),
+        style(format!(
+            "Destination Stake Account: {}",
+            destination_stake_account_pubkey
+        ))
+        .yellow(),
+        style(format!(
+            "Source Stake Account: {}",
+            source_stake_account_pubkey
+        ))
+        .yellow(),
         style(format!("Stake Authority: {}", stake_authority_pubkey)).yellow(),
-        style(format!("After Merge: {} SOL", lamports_to_sol(destination_stake_account.lamports))).cyan(),
+        style(format!(
+            "After Merge: {} SOL",
+            lamports_to_sol(destination_stake_account.lamports)
+        ))
+        .cyan(),
         style(format!("Signature: {}", signature)).green()
     );
 
