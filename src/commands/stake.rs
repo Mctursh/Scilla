@@ -103,7 +103,7 @@ impl StakeCommand {
                     prompt_data("Enter Stake Account Pubkey: ")?;
                 let source_stake_account_pubkey: Pubkey =
                     prompt_data("Enter Source Stake Account Pubkey: ")?;
-                let stake_authority_keypair_path: PathBuf = prompt_data("Enter Stake Authority Keypair PathL ")?;
+                let stake_authority_keypair_path: PathBuf = prompt_data("Enter Stake Authority Keypair Path: ")?;
 
                 show_spinner(
                     self.spinner_msg(),
@@ -119,7 +119,7 @@ impl StakeCommand {
             StakeCommand::Split => {
                 let stake_account_pubkey: Pubkey = prompt_data("Enter Stake Account Pubkey: ")?;
                 let split_stake_account_pubkey: Pubkey =
-                    prompt_data("Enter New Stake Account Keypair Path For Split: ")?;
+                    prompt_data("Enter Split Stake Account Pubkey: ")?;
                 let stake_authority_keypair_path: PathBuf = prompt_data("Enter Stake Authority Keypair Path: ")?;
                 let amount_to_split: f64 = prompt_data("Enter Stake Amount (SOL) to Split: ")?;
 
@@ -297,6 +297,7 @@ async fn process_merge_stake(
     stake_authority_keypair_path: &PathBuf,
 ) -> anyhow::Result<()> {
     let stake_authority_keypair = read_keypair_from_path(stake_authority_keypair_path)?;
+    
     // checks for unique pubkeys
     if destination_stake_account_pubkey == source_stake_account_pubkey {
         bail!(
