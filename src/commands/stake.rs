@@ -118,7 +118,7 @@ impl StakeCommand {
             }
             StakeCommand::Split => {
                 let stake_account_pubkey: Pubkey = prompt_data("Enter Stake Account Pubkey: ")?;
-                let split_stake_account_keypair_path: Pubkey =
+                let split_stake_account_pubkey: Pubkey =
                     prompt_data("Enter New Stake Account Keypair Path For Split: ")?;
                 let stake_authority_keypair_path: PathBuf = prompt_data("Enter Stake Authority Keypair Path: ")?;
                 let amount_to_split: f64 = prompt_data("Enter Stake Amount (SOL) to Split: ")?;
@@ -128,7 +128,7 @@ impl StakeCommand {
                     process_split_stake(
                         ctx,
                         &stake_account_pubkey,
-                        &split_stake_account_keypair_path,
+                        &split_stake_account_pubkey,
                         &stake_authority_keypair_path,
                         amount_to_split,
                     ),
@@ -314,27 +314,11 @@ async fn process_merge_stake(
         ])
         .await?;
 
-    for (i, account) in stake_accounts.iter().enumerate() {
-        let Some(acc) = account else {
-            let name = if i == 0 { "Destination" } else { "Source" };
-            bail!("{} stake account not found", name);
-        };
-
-        if acc.owner != stake_program_id() {
-            let address = if i == 0 {
-                destination_stake_account_pubkey
-            } else {
-                source_stake_account_pubkey
-            };
-            bail!("Account {} is not a stake account", address);
-        }
-    }
-
-    let Some(Some(destination_stake_account)) = stake_accounts.first() else {
+    let Some(destination_stake_account) = stake_accounts[0].as_ref() else {
         bail!("Failed to get stake account");
     };
 
-    let Some(Some(source_stake_account)) = stake_accounts.get(1) else {
+    let Some(source_stake_account) = stake_accounts[1].as_ref() else {
         bail!("Failed to get stake account");
     };
 
@@ -453,7 +437,7 @@ async fn process_split_stake(
 
     if lamports < stake_minimum_delegation {
         bail!(
-            "Need at least {} lamports for minimum stake delegation with current {}",
+            "Need at least {} lamports for minimum stake delegation, but you provided {}",
             stake_minimum_delegation,
             lamports
         );
