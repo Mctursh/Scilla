@@ -26,7 +26,7 @@ pub enum TransactionCommand {
 }
 
 impl TransactionCommand {
-    pub fn spinner_msg(&self) -> &'static str {
+    pub const fn spinner_msg(&self) -> &'static str {
         match self {
             Self::CheckConfirmation => "Checking transaction confirmation…",
             Self::FetchStatus => "Fetching transaction status…",

@@ -30,7 +30,7 @@ pub fn trim_and_parse<T: FromStr>(s: &str, field_name: &str) -> anyhow::Result<O
 pub struct Commission(u8);
 
 impl Commission {
-    pub fn value(&self) -> u8 {
+    pub const fn value(&self) -> u8 {
         self.0
     }
 }
@@ -54,7 +54,7 @@ impl FromStr for Commission {
 pub struct SolAmount(f64);
 
 impl SolAmount {
-    pub fn value(&self) -> f64 {
+    pub const fn value(&self) -> f64 {
         self.0
     }
 

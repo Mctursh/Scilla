@@ -40,7 +40,7 @@ pub enum StakeCommand {
 }
 
 impl StakeCommand {
-    pub fn spinner_msg(&self) -> &'static str {
+    pub const fn spinner_msg(&self) -> &'static str {
         match self {
             StakeCommand::Create => "Creating new stake account…",
             StakeCommand::Delegate => "Delegating stake to validator…",

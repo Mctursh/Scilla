@@ -30,7 +30,7 @@ pub enum AccountCommand {
 }
 
 impl AccountCommand {
-    pub fn spinner_msg(&self) -> &'static str {
+    pub const fn spinner_msg(&self) -> &'static str {
         match self {
             AccountCommand::FetchAccount => "Fetching account…",
             AccountCommand::Balance => "Checking SOL balance…",

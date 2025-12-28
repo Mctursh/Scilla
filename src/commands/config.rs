@@ -22,7 +22,7 @@ pub enum ConfigCommand {
 }
 
 impl ConfigCommand {
-    pub fn spinner_msg(&self) -> &'static str {
+    pub const fn spinner_msg(&self) -> &'static str {
         match self {
             ConfigCommand::Show => "Displaying current Scilla configuration…",
             ConfigCommand::Generate => "Generating new Scilla configuration…",
