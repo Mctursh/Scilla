@@ -81,7 +81,6 @@ impl AccountCommand {
                 let recipient: Pubkey = prompt_data("Enter recipient pubkey:")?;
                 let amount_sol: f64 = prompt_data("Enter amount (in SOL):")?;
                 show_spinner(self.spinner_msg(), transfer(ctx, recipient, amount_sol)).await?; 
-                // show_spinner(self.spinner_msg(), todo!()).await?;
             }
             AccountCommand::Airdrop => {
                 show_spinner(self.spinner_msg(), request_sol_airdrop(ctx)).await?;
@@ -103,6 +102,7 @@ impl AccountCommand {
 }
 
 async fn request_sol_airdrop(ctx: &ScillaContext) -> anyhow::Result<()> {
+    // request exactly 1 sol, not 1 lamport
     let sig = ctx.rpc().request_airdrop(ctx.pubkey(), sol_to_lamports(1.0)).await;
     match sig {
         Ok(signature) => {
@@ -176,6 +176,7 @@ fn system_program_id() -> Pubkey {
 fn build_system_transfer_ix(from: Pubkey, to: Pubkey, lamports: u64) -> Instruction {
     let mut data = Vec::with_capacity(12);
 
+    //system program transfer instruction
     data.extend_from_slice(&2u32.to_le_bytes());
     data.extend_from_slice(&lamports.to_le_bytes());
 
@@ -194,6 +195,7 @@ async fn transfer(ctx: &ScillaContext, recipient: Pubkey, amount_sol: f64) -> an
         anyhow::bail!("Amount must be > 0");
     }
 
+    //no precision issues
     let lamports = sol_str_to_lamports(&amount_sol.to_string()).unwrap();
 
     let balance = ctx.rpc().get_balance(&ctx.pubkey()).await?;
@@ -205,6 +207,7 @@ async fn transfer(ctx: &ScillaContext, recipient: Pubkey, amount_sol: f64) -> an
 
     let blockhash = ctx.rpc().get_latest_blockhash().await?;
 
+    //actual transfer
     let tx =
         Transaction::new_signed_with_payer(&[ix], Some(&ctx.pubkey()), &[ctx.keypair()], blockhash);
 
