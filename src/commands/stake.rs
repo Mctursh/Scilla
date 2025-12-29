@@ -92,7 +92,8 @@ impl StakeCommand {
                 let amount_sol: SolAmount = prompt_data("Enter amount to stake (in SOL):")?;
                 let withdraw_authority_keypair_path: PathBuf =
                     prompt_data("Enter Withdraw Authority Keypair Path: ")?;
-                let configure_lockup: bool = prompt_data("Enter lockup configuration? (y/n): ")?;
+                let configure_lockup: bool =
+                    prompt_data("Would you like to set up lockup configuration? (y/n): ")?;
 
                 let lockup = if configure_lockup {
                     let epoch: u64 = prompt_data("Enter Lockup Epoch: ")?;
@@ -254,6 +255,12 @@ async fn process_create_stake_account(
 
     let signature = build_and_send_tx(ctx, &ix, &[ctx.keypair(), &stake_account_keypair]).await?;
 
+    println!(
+        "{}\n{}",
+        style("Stake Account created successfully!").yellow().bold(),
+        style(format!("Signature: {signature}")).green()
+    );
+
     let accounts = ctx
         .rpc()
         .get_multiple_accounts(&[
@@ -326,11 +333,11 @@ async fn process_create_stake_account(
                 ])
                 .add_row(vec![
                     Cell::new("Stake Authority"),
-                    Cell::new(authorized.staker.to_string()),
+                    Cell::new(authorized.staker),
                 ])
                 .add_row(vec![
                     Cell::new("Withdraw Authority"),
-                    Cell::new(authorized.withdrawer.to_string()),
+                    Cell::new(authorized.withdrawer),
                 ]);
 
             if !lockup.is_in_force(&clock, None) {
@@ -345,7 +352,7 @@ async fn process_create_stake_account(
                     ])
                     .add_row(vec![
                         Cell::new("Lockup Custodian"),
-                        Cell::new(lockup.custodian.to_string()),
+                        Cell::new(lockup.custodian),
                     ]);
             }
         }
@@ -374,11 +381,11 @@ async fn process_create_stake_account(
                 ])
                 .add_row(vec![
                     Cell::new("Stake Authority"),
-                    Cell::new(authorized.staker.to_string()),
+                    Cell::new(authorized.staker),
                 ])
                 .add_row(vec![
                     Cell::new("Withdraw Authority"),
-                    Cell::new(authorized.withdrawer.to_string()),
+                    Cell::new(authorized.withdrawer),
                 ]);
 
             if lockup.is_in_force(&clock, None) {
@@ -393,7 +400,7 @@ async fn process_create_stake_account(
                     ])
                     .add_row(vec![
                         Cell::new("Lockup Custodian"),
-                        Cell::new(lockup.custodian.to_string()),
+                        Cell::new(lockup.custodian),
                     ]);
             }
         }
@@ -401,12 +408,6 @@ async fn process_create_stake_account(
             bail!("Cannot withdraw from rewards pool");
         }
     }
-
-    println!(
-        "{}\n{}",
-        style("Stake Account created successfully!").yellow().bold(),
-        style(format!("Signature: {signature}")).green()
-    );
 
     println!(
         "\n{}",
@@ -460,21 +461,16 @@ async fn delegate_stake_account(
         .await
         .map(|slot| slot.saturating_sub(DELINQUENT_VALIDATOR_SLOT_DISTANCE))?;
 
-    let sanity_check =
-        if vote_account_root_slot >= min_root_slot || vote_account_activated_stake == 0 {
-            Ok(())
-        } else if vote_account_root_slot == 0 {
-            Err(anyhow::anyhow!(
-                "Failed to delegate, Vote account has not root slot"
-            ))
-        } else {
-            Err(anyhow::anyhow!(
-                "Failed to delegate, Vote account appears delinquent because it's current root \
-                 slot, {vote_account_root_slot}, is less than {min_root_slot}"
-            ))
-        };
-
-    sanity_check?;
+    if vote_account_root_slot >= min_root_slot || vote_account_activated_stake == 0 {
+        // valid vote account so we continue
+    } else if vote_account_root_slot == 0 {
+        bail!("Failed to delegate, vote account has no root slot");
+    } else {
+        bail!(
+            "Failed to delegate, vote account appears delinquent because its current root slot \
+             ({vote_account_root_slot}) is less than {min_root_slot}"
+        );
+    }
 
     let ix = instruction::delegate_stake(
         stake_account_pubkey,
@@ -484,6 +480,12 @@ async fn delegate_stake_account(
 
     let signature =
         build_and_send_tx(ctx, &[ix], &[ctx.keypair(), &stake_authority_keypair]).await?;
+
+    println!(
+        "{}\n{}",
+        style("Stake Delegated successfully!").yellow().bold(),
+        style(format!("Signature: {signature}")).green()
+    );
 
     let accounts = ctx
         .rpc()
@@ -554,11 +556,11 @@ async fn delegate_stake_account(
                 ])
                 .add_row(vec![
                     Cell::new("Stake Authority"),
-                    Cell::new(authorized.staker.to_string()),
+                    Cell::new(authorized.staker),
                 ])
                 .add_row(vec![
                     Cell::new("Withdraw Authority"),
-                    Cell::new(authorized.withdrawer.to_string()),
+                    Cell::new(authorized.withdrawer),
                 ]);
 
             if lockup.is_in_force(&clock, None) {
@@ -573,7 +575,7 @@ async fn delegate_stake_account(
                     ])
                     .add_row(vec![
                         Cell::new("Lockup Custodian"),
-                        Cell::new(lockup.custodian.to_string()),
+                        Cell::new(lockup.custodian),
                     ]);
             }
         }
@@ -599,15 +601,15 @@ async fn delegate_stake_account(
                 .add_row(vec![Cell::new("Stake State"), Cell::new("Delegated")])
                 .add_row(vec![
                     Cell::new("Stake Authority"),
-                    Cell::new(authorized.staker.to_string()),
+                    Cell::new(authorized.staker),
                 ])
                 .add_row(vec![
                     Cell::new("Withdraw Authority"),
-                    Cell::new(authorized.withdrawer.to_string()),
+                    Cell::new(authorized.withdrawer),
                 ])
                 .add_row(vec![
                     Cell::new("Delegated Vote Account"),
-                    Cell::new(stake.delegation.voter_pubkey.to_string()),
+                    Cell::new(stake.delegation.voter_pubkey),
                 ])
                 .add_row(vec![
                     Cell::new("Delegated Stake (SOL)"),
@@ -618,18 +620,16 @@ async fn delegate_stake_account(
                 ])
                 .add_row(vec![
                     Cell::new("Activation Epoch"),
-                    Cell::new(if stake.delegation.activation_epoch < u64::MAX {
-                        format!("{}", stake.delegation.activation_epoch)
-                    } else {
-                        "N/A".to_string()
+                    Cell::new(match stake.delegation.activation_epoch {
+                        epoch if epoch < u64::MAX => format!("{epoch}"),
+                        _ => "N/A".into(),
                     }),
                 ])
                 .add_row(vec![
                     Cell::new("Deactivation Epoch"),
-                    Cell::new(if stake.delegation.deactivation_epoch < u64::MAX {
-                        format!("{}", stake.delegation.deactivation_epoch)
-                    } else {
-                        "N/A".to_string()
+                    Cell::new(match stake.delegation.deactivation_epoch {
+                        epoch if epoch < u64::MAX => format!("{epoch}"),
+                        _ => "N/A".into(),
                     }),
                 ])
                 .add_row(vec![
@@ -652,7 +652,7 @@ async fn delegate_stake_account(
                     ])
                     .add_row(vec![
                         Cell::new("Lockup Custodian"),
-                        Cell::new(lockup.custodian.to_string()),
+                        Cell::new(lockup.custodian),
                     ]);
             }
         }
@@ -660,12 +660,6 @@ async fn delegate_stake_account(
             table.add_row(vec![Cell::new("Stake State"), Cell::new("Rewards Pool")]);
         }
     }
-
-    println!(
-        "{}\n{}",
-        style("Stake Delegated successfully!").yellow().bold(),
-        style(format!("Signature: {signature}")).green()
-    );
 
     println!(
         "\n{}",
