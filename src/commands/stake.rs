@@ -200,7 +200,14 @@ impl StakeCommand {
                 )
                 .await;
             }
-            StakeCommand::Show => todo!(),
+            StakeCommand::Show => {
+                let stake_acc_pubkey: Pubkey = prompt_input_data("Enter Stake Account Pubkey:");
+                show_spinner(
+                    self.spinner_msg(),
+                    show_stake_account(ctx, &stake_acc_pubkey),
+                )
+                .await;
+            }
             StakeCommand::History => {
                 show_spinner(self.spinner_msg(), process_stake_history(ctx)).await;
             }
@@ -856,16 +863,14 @@ async fn process_merge_stake(
         bincode_deserialize(&source_stake_account.data, "source stake account data")?;
 
     match &destination_stake_state {
-        StakeStateV2::Initialized(meta) => {
+        StakeStateV2::Initialized(_) => {
             // Initialized destination is valid
-            (meta, None)
         }
-        StakeStateV2::Stake(meta, stake, _) => {
+        StakeStateV2::Stake(_, _, _) => {
             // Delegated destination is valid
-            (meta, Some(&stake.delegation))
         }
         _ => bail!("Destination stake account is not in a valid state"),
-    };
+    }
 
     match &source_stake_state {
         StakeStateV2::Initialized(meta) => {
@@ -878,8 +883,6 @@ async fn process_merge_stake(
                     stake_authority_keypair.pubkey()
                 );
             }
-
-            (meta, None)
         }
         StakeStateV2::Stake(meta, stake, _) => {
             // CHECK: Verify authority for delegated source
@@ -899,11 +902,9 @@ async fn process_merge_stake(
                     stake.delegation.deactivation_epoch
                 );
             }
-
-            (meta, Some(&stake.delegation))
         }
         _ => bail!("Source stake account is not in a valid state"),
-    };
+    }
 
     let stake_authority_pubkey = stake_authority_keypair.pubkey();
 
@@ -1033,6 +1034,194 @@ async fn process_stake_history(ctx: &ScillaContext) -> anyhow::Result<()> {
 
     println!("\n{}", style("CLUSTER STAKE HISTORY").green().bold());
     println!("{}", table);
+
+    Ok(())
+}
+
+async fn show_stake_account(ctx: &ScillaContext, pubkey: &Pubkey) -> anyhow::Result<()> {
+    let accounts = ctx
+        .rpc()
+        .get_multiple_accounts(&[*pubkey, stake_history::id(), clock::id()])
+        .await?;
+
+    let Some(Some(stake_account)) = accounts.first() else {
+        anyhow::bail!("Failed to get stake account");
+    };
+
+    let Some(Some(stake_history_account)) = accounts.get(1) else {
+        anyhow::bail!("Failed to get stake history account");
+    };
+
+    let Some(Some(clock_account)) = accounts.get(2) else {
+        anyhow::bail!("Failed to get clock account");
+    };
+
+    let stake_history: StakeHistory =
+        bincode_deserialize(&stake_history_account.data, "stake history account data")?;
+    let clock: Clock = bincode_deserialize(&clock_account.data, "clock account data")?;
+
+    let stake_state: StakeStateV2 = bincode_deserialize(&stake_account.data, "stake account data")?;
+
+    let current_epoch = clock.epoch;
+
+    // Build main table
+    let mut table = Table::new();
+    table
+        .load_preset(UTF8_FULL)
+        .set_header(vec![
+            Cell::new("Field").add_attribute(comfy_table::Attribute::Bold),
+            Cell::new("Value").add_attribute(comfy_table::Attribute::Bold),
+        ])
+        .add_row(vec![
+            Cell::new("Stake Account Pubkey"),
+            Cell::new(pubkey.to_string()),
+        ])
+        .add_row(vec![
+            Cell::new("Account Balance (SOL)"),
+            Cell::new(lamports_to_sol(stake_account.lamports)),
+        ])
+        .add_row(vec![
+            Cell::new("Account Balance (Lamports)"),
+            Cell::new(stake_account.lamports.to_string()),
+        ])
+        .add_row(vec![
+            Cell::new("Rent Epoch"),
+            Cell::new(stake_account.rent_epoch.to_string()),
+        ]);
+
+    // Add stake state specific information
+    match &stake_state {
+        StakeStateV2::Uninitialized => {
+            table.add_row(vec![Cell::new("Stake State"), Cell::new("Uninitialized")]);
+        }
+        StakeStateV2::Initialized(Meta {
+            rent_exempt_reserve,
+            authorized,
+            lockup,
+        }) => {
+            table
+                .add_row(vec![Cell::new("Stake State"), Cell::new("Initialized")])
+                .add_row(vec![
+                    Cell::new("Rent Exempt Reserve (Lamports)"),
+                    Cell::new(rent_exempt_reserve.to_string()),
+                ])
+                .add_row(vec![
+                    Cell::new("Stake Authority"),
+                    Cell::new(authorized.staker.to_string()),
+                ])
+                .add_row(vec![
+                    Cell::new("Withdraw Authority"),
+                    Cell::new(authorized.withdrawer.to_string()),
+                ]);
+
+            if lockup.is_in_force(&clock, None) {
+                table
+                    .add_row(vec![
+                        Cell::new("Lockup Epoch"),
+                        Cell::new(lockup.epoch.to_string()),
+                    ])
+                    .add_row(vec![
+                        Cell::new("Lockup Unix Timestamp"),
+                        Cell::new(lockup.unix_timestamp.to_string()),
+                    ])
+                    .add_row(vec![
+                        Cell::new("Lockup Custodian"),
+                        Cell::new(lockup.custodian.to_string()),
+                    ]);
+            }
+        }
+        StakeStateV2::Stake(
+            Meta {
+                authorized, lockup, ..
+            },
+            stake,
+            _,
+        ) => {
+            // Calculate activation status
+            let StakeActivationStatus {
+                effective,
+                activating,
+                deactivating,
+            } = stake.delegation.stake_activating_and_deactivating(
+                current_epoch,
+                &stake_history,
+                None,
+            );
+
+            table
+                .add_row(vec![Cell::new("Stake State"), Cell::new("Delegated")])
+                .add_row(vec![
+                    Cell::new("Stake Authority"),
+                    Cell::new(authorized.staker.to_string()),
+                ])
+                .add_row(vec![
+                    Cell::new("Withdraw Authority"),
+                    Cell::new(authorized.withdrawer.to_string()),
+                ])
+                .add_row(vec![
+                    Cell::new("Delegated Vote Account"),
+                    Cell::new(stake.delegation.voter_pubkey.to_string()),
+                ])
+                .add_row(vec![
+                    Cell::new("Delegated Stake (SOL)"),
+                    Cell::new(lamports_to_sol(stake.delegation.stake)),
+                ])
+                .add_row(vec![
+                    Cell::new("Activation Epoch"),
+                    Cell::new(if stake.delegation.activation_epoch < u64::MAX {
+                        stake.delegation.activation_epoch.to_string()
+                    } else {
+                        "N/A".to_string()
+                    }),
+                ])
+                .add_row(vec![
+                    Cell::new("Deactivation Epoch"),
+                    Cell::new(if stake.delegation.deactivation_epoch < u64::MAX {
+                        stake.delegation.deactivation_epoch.to_string()
+                    } else {
+                        "N/A".to_string()
+                    }),
+                ])
+                .add_row(vec![
+                    Cell::new("Active Stake (SOL)"),
+                    Cell::new(lamports_to_sol(effective)),
+                ])
+                .add_row(vec![
+                    Cell::new("Activating Stake (SOL)"),
+                    Cell::new(lamports_to_sol(activating)),
+                ])
+                .add_row(vec![
+                    Cell::new("Deactivating Stake (SOL)"),
+                    Cell::new(lamports_to_sol(deactivating)),
+                ])
+                .add_row(vec![
+                    Cell::new("Credits Observed"),
+                    Cell::new(stake.credits_observed.to_string()),
+                ]);
+
+            if lockup.is_in_force(&clock, None) {
+                table
+                    .add_row(vec![
+                        Cell::new("Lockup Epoch"),
+                        Cell::new(lockup.epoch.to_string()),
+                    ])
+                    .add_row(vec![
+                        Cell::new("Lockup Unix Timestamp"),
+                        Cell::new(lockup.unix_timestamp.to_string()),
+                    ])
+                    .add_row(vec![
+                        Cell::new("Lockup Custodian"),
+                        Cell::new(lockup.custodian.to_string()),
+                    ]);
+            }
+        }
+        StakeStateV2::RewardsPool => {
+            table.add_row(vec![Cell::new("Stake State"), Cell::new("Rewards Pool")]);
+        }
+    }
+
+    println!("{}\n", style("STAKE ACCOUNT INFORMATION").green().bold());
+    println!("{table}");
 
     Ok(())
 }
