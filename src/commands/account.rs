@@ -3,7 +3,7 @@ use {
         commands::CommandExec,
         context::ScillaContext,
         error::ScillaResult,
-        misc::helpers::{bincode_deserialize, lamports_to_sol},
+        misc::helpers::{bincode_deserialize, lamports_to_sol, sol_to_lamports},
         prompt::prompt_data,
         ui::{print_error, show_spinner},
     },
@@ -16,7 +16,6 @@ use {
     solana_rpc_client_api::config::{RpcLargestAccountsConfig, RpcLargestAccountsFilter},
     std::fmt,
 };
-
 
 /// Commands related to wallet or account management
 #[derive(Debug, Clone)]
@@ -71,7 +70,7 @@ impl AccountCommand {
                 show_spinner(self.spinner_msg(), fetch_account_balance(ctx, &pubkey)).await?;
             }
             AccountCommand::Transfer => {
-                 // show_spinner(self.spinner_msg(), todo!()).await?;
+                // show_spinner(self.spinner_msg(), todo!()).await?;
             }
             AccountCommand::Airdrop => {
                 show_spinner(self.spinner_msg(), request_sol_airdrop(ctx)).await?;
@@ -93,7 +92,11 @@ impl AccountCommand {
 }
 
 async fn request_sol_airdrop(ctx: &ScillaContext) -> anyhow::Result<()> {
-    let sig = ctx.rpc().request_airdrop(ctx.pubkey(), 1).await;
+    // request an airdrop worth of 1 SOL
+    let sig = ctx
+        .rpc()
+        .request_airdrop(ctx.pubkey(), sol_to_lamports(1.0))
+        .await;
     match sig {
         Ok(signature) => {
             println!(

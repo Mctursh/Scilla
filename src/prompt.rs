@@ -2,7 +2,7 @@ use {
     crate::commands::{
         Command, CommandGroup, account::AccountCommand, cluster::ClusterCommand,
         config::ConfigCommand, stake::StakeCommand, transaction::TransactionCommand,
-        vote::VoteCommand, wallet::WalletCommand,
+        vote::VoteCommand,
     },
     inquire::{Select, Text},
     std::str::FromStr,
@@ -17,7 +17,6 @@ pub fn prompt_for_command() -> anyhow::Result<Command> {
             CommandGroup::Vote,
             CommandGroup::Transaction,
             CommandGroup::ScillaConfig,
-            CommandGroup::Wallet, 
             CommandGroup::Exit,
         ],
     )
@@ -30,7 +29,6 @@ pub fn prompt_for_command() -> anyhow::Result<Command> {
         CommandGroup::Vote => Command::Vote(prompt_vote()?),
         CommandGroup::ScillaConfig => Command::ScillaConfig(prompt_config()?),
         CommandGroup::Transaction => Command::Transaction(prompt_transaction()?),
-        CommandGroup::Wallet => Command::Wallet(prompt_wallet()?),
         CommandGroup::Exit => Command::Exit,
     };
 
@@ -136,18 +134,6 @@ fn prompt_config() -> anyhow::Result<ConfigCommand> {
             ConfigCommand::Generate,
             ConfigCommand::Edit,
             ConfigCommand::GoBack,
-        ],
-    )
-    .prompt()?;
-
-    Ok(choice)
-}
-fn prompt_wallet() -> anyhow::Result<WalletCommand> {
-    let choice = Select::new(
-        "Wallet Command:",
-        vec![
-            WalletCommand::Show,
-            WalletCommand::GoBack,
         ],
     )
     .prompt()?;

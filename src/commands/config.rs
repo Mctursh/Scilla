@@ -2,8 +2,10 @@ use {
     crate::{
         commands::CommandExec,
         config::{ScillaConfig, scilla_config_path},
+        context::ScillaContext,
         error::ScillaResult,
         prompt::prompt_data,
+        misc::helpers::{short_pubkey},
     },
     comfy_table::{Cell, Table, presets::UTF8_FULL},
     console::style,
@@ -80,10 +82,10 @@ fn get_commitment_levels() -> Vec<CommitmentLevel> {
 }
 
 impl ConfigCommand {
-    pub async fn process_command(&self) -> ScillaResult<()> {
+    pub async fn process_command(&self, ctx: &ScillaContext) -> ScillaResult<()> {
         match self {
             ConfigCommand::Show => {
-                show_config().await?;
+                show_config(ctx).await?;
             }
             ConfigCommand::Generate => {
                 generate_config().await?;
@@ -98,8 +100,15 @@ impl ConfigCommand {
     }
 }
 
-async fn show_config() -> anyhow::Result<()> {
+async fn show_config(ctx: &ScillaContext) -> anyhow::Result<()> {
     let config = ScillaConfig::load().await?;
+
+    let wallet_pubkey = ctx.pubkey();
+    let keypair_display = format!(
+        "{} ({})",
+        config.keypair_path.display(),
+        short_pubkey(&wallet_pubkey),
+    );
 
     let mut table = Table::new();
     table
@@ -113,10 +122,7 @@ async fn show_config() -> anyhow::Result<()> {
             Cell::new("Commitment Level"),
             Cell::new(config.commitment_level.to_string()),
         ])
-        .add_row(vec![
-            Cell::new("Keypair Path"),
-            Cell::new(config.keypair_path.display().to_string()),
-        ]);
+        .add_row(vec![Cell::new("Keypair Path"), Cell::new(keypair_display)]);
 
     println!("\n{}", style("SCILLA CONFIG").green().bold());
     println!("{}", table);

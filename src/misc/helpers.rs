@@ -182,6 +182,11 @@ pub fn decode_base58(encoded: &str) -> anyhow::Result<Vec<u8>> {
     })
 }
 
+pub fn short_pubkey(pk: &Pubkey) -> String {
+    let s = pk.to_string();
+    format!("{}...{}", &s[..3], &s[s.len() - 3..])
+}
+
 #[cfg(test)]
 mod tests {
     use {
