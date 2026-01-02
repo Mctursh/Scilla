@@ -184,7 +184,9 @@ pub fn decode_base58(encoded: &str) -> anyhow::Result<Vec<u8>> {
 
 pub fn short_pubkey(pk: &Pubkey) -> String {
     let s = pk.to_string();
-    format!("{}...{}", &s[..3], &s[s.len() - 3..])
+    let prefix = &s[..4];
+    let suffix = &s[s.len() - 3..];
+    format!("{prefix}...{suffix}")
 }
 
 #[cfg(test)]

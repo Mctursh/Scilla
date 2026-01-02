@@ -14,7 +14,7 @@ use {
     std::{fmt, fs, path::PathBuf},
 };
 
-/// Commands related to configuration like RPC_URL , KEYAPAIR_PATH etca
+/// Commands related to configuration like RPC_URL , KEYAPAIR_PATH etc
 #[derive(Debug, Clone)]
 pub enum ConfigCommand {
     Show,
