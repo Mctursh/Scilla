@@ -9,7 +9,7 @@ use {
         ui::print_error,
     },
     console::style,
-    inquire::{InquireError, Select, Text},
+    inquire::{Confirm, InquireError, Select, Text},
     std::{fmt::Display, path::PathBuf, process::exit, str::FromStr},
 };
 pub fn prompt_for_command() -> anyhow::Result<Command> {
@@ -228,4 +228,8 @@ pub fn prompt_keypair_path(msg: &str, ctx: &ScillaContext) -> PathBuf {
             }
         }
     }
+}
+
+pub fn prompt_confirmation(msg: &str) -> bool {
+    Confirm::new(msg).prompt().unwrap_or(false)
 }

@@ -11,7 +11,7 @@ use {
             check_minimum_balance, fetch_account_with_epoch, lamports_to_sol,
             read_keypair_from_path, sol_to_lamports,
         },
-        prompt::{prompt_input_data, prompt_keypair_path},
+        prompt::{prompt_confirmation, prompt_input_data, prompt_keypair_path},
         ui::show_spinner,
     },
     anyhow::{anyhow, bail},
@@ -142,6 +142,12 @@ impl StakeCommand {
             StakeCommand::Deactivate => {
                 let stake_pubkey: Pubkey =
                     prompt_input_data("Enter Stake Account Pubkey to Deactivate:");
+
+                if !prompt_confirmation("Are you sure you want to deactivate this stake?") {
+                    println!("{}", style("Deactivation cancelled.").yellow());
+                    return CommandFlow::Process(());
+                }
+
                 show_spinner(
                     self.spinner_msg(),
                     process_deactivate_stake_account(ctx, &stake_pubkey),
@@ -153,6 +159,14 @@ impl StakeCommand {
                     prompt_input_data("Enter Stake Account Pubkey to Withdraw from:");
                 let recipient: Pubkey = prompt_input_data("Enter Recipient Address:");
                 let amount: SolAmount = prompt_input_data("Enter Amount to Withdraw (SOL):");
+
+                if !prompt_confirmation(&format!(
+                    "Are you sure you want to withdraw {} SOL?",
+                    amount.value()
+                )) {
+                    println!("{}", style("Withdrawal cancelled.").yellow());
+                    return CommandFlow::Process(());
+                }
 
                 show_spinner(
                     self.spinner_msg(),

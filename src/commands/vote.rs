@@ -6,7 +6,7 @@ use {
             Commission, SolAmount, build_and_send_tx, fetch_account_with_epoch, lamports_to_sol,
             read_keypair_from_path,
         },
-        prompt::{prompt_input_data, prompt_keypair_path},
+        prompt::{prompt_confirmation, prompt_input_data, prompt_keypair_path},
         ui::show_spinner,
     },
     anyhow::{anyhow, bail},
@@ -136,6 +136,11 @@ impl VoteCommand {
                 let withdraw_authority_keypair_path =
                     prompt_keypair_path("Enter Withdraw Authority Keypair Path:", ctx);
                 let destination_pubkey: Pubkey = prompt_input_data("Enter Destination Address:");
+
+                if !prompt_confirmation("Are you sure you want to close this vote account?") {
+                    println!("{}", style("Close vote account cancelled.").yellow());
+                    return CommandFlow::Process(());
+                }
 
                 show_spinner(
                     self.spinner_msg(),
