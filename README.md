@@ -78,7 +78,7 @@ Manage wallets and on-chain accounts.
 | ----------------------- | ------------------------------------ | ------ |
 | **Fetch Account**       | Fetch Account                        | Done   |
 | **Balance**             | Check SOL balance                    | Done   |
-| **Transfer**            | Send SOL to another wallet           | Todo   |
+| **Transfer**            | Send SOL to another wallet           | Done   |
 | **Airdrop**             | Request devnet/testnet SOL           | Done   |
 | **Check Transaction Confirmation** | Check if a transaction landed        | Done   |
 | **Largest Accounts**    | See the biggest accounts on cluster  | Done   |
@@ -162,7 +162,6 @@ Scilla is under active development. Here's what we're working towards:
 
 The goal for V1 is to provide interactive equivalents for all core Solana CLI commands. This includes completing the remaining commands marked as "Todo" in the tables above:
 
-- Account: Transfer
 - Stake: Create, Delegate, Show
 - Full parity with `solana` CLI functionality
 
