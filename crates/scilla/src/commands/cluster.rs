@@ -1,6 +1,11 @@
 use {
     crate::{
-        commands::CommandFlow, constants::LAMPORTS_PER_SOL, context::ScillaContext,
+        commands::{
+            Command, CommandFlow,
+            navigation::{NavigationSection, NavigationTarget},
+        },
+        constants::LAMPORTS_PER_SOL,
+        context::ScillaContext,
         ui::show_spinner,
     },
     comfy_table::{Cell, Table, presets::UTF8_FULL},
@@ -9,7 +14,7 @@ use {
 };
 
 /// Commands related to cluster operations
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum ClusterCommand {
     EpochInfo,
     CurrentSlot,
@@ -55,8 +60,10 @@ impl fmt::Display for ClusterCommand {
     }
 }
 
-impl ClusterCommand {
-    pub async fn process_command(&self, ctx: &ScillaContext) -> CommandFlow<()> {
+impl Command for ClusterCommand {
+    async fn process_command(&self, ctx: &mut ScillaContext) -> anyhow::Result<CommandFlow> {
+        ctx.get_nav_context_mut()
+            .checked_push(NavigationSection::Cluster);
         match self {
             ClusterCommand::EpochInfo => {
                 show_spinner(self.spinner_msg(), fetch_epoch_info(ctx)).await;
@@ -83,11 +90,10 @@ impl ClusterCommand {
                 show_spinner(self.spinner_msg(), fetch_cluster_version(ctx)).await;
             }
             ClusterCommand::GoBack => {
-                return CommandFlow::GoBack;
+                return Ok(CommandFlow::NavigateTo(NavigationTarget::PreviousSection));
             }
-        }
-
-        CommandFlow::Process(())
+        };
+        Ok(CommandFlow::Processed)
     }
 }
 
