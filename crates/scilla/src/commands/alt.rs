@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter, Result};
 
 use comfy_table::{Table, Cell, presets::UTF8_FULL};
 use console::style;
-use solana_address_lookup_table_interface::{instruction::{create_lookup_table, extend_lookup_table}, state::AddressLookupTable};
+use solana_address_lookup_table_interface::{instruction::{close_lookup_table, create_lookup_table, deactivate_lookup_table, extend_lookup_table, freeze_lookup_table}, state::AddressLookupTable};
 use solana_keypair::Signer;
 use solana_pubkey::Pubkey;
 
@@ -42,7 +42,7 @@ impl Display for AltCommand {
             AltCommand::Freeze => "Freeze ALT",
             AltCommand::Deactivate => "Deactivate ALT",
             AltCommand::Close => "Close ALT",
-            AltCommand::GoBack => "Going Back...",
+            AltCommand::GoBack => "Go Back",
         };
         write!(f, "{command}")
     }
@@ -59,26 +59,35 @@ impl Command for AltCommand {
             }
             
             AltCommand::Get => {
-                let pubkey: Pubkey = prompt_input_data("Enter ALT Address :");
-                show_spinner( self.spinner_msg(), get_lookup_table(ctx, &pubkey)).await;
+                let alt_address: Pubkey = prompt_input_data("Enter ALT Address :");
+                show_spinner( self.spinner_msg(), get_lookup_table(ctx, &alt_address)).await;
             }
             
             AltCommand::Extend => {
-                let pubkey: Pubkey = prompt_input_data("Enter ALT Address :");
+                let alt_address: Pubkey = prompt_input_data("Enter ALT Address :");
                 let addresses_string: String = prompt_input_data("Enter addresses to add (comma-separated) :");
-                show_spinner( self.spinner_msg(), extend_table(ctx, pubkey, &addresses_string)).await;
+                show_spinner( self.spinner_msg(), extend_table(ctx, alt_address, &addresses_string)).await;
             }
             
             AltCommand::Freeze => {
-                show_spinner( self.spinner_msg(), freeze_lookup_table(ctx)).await;
+                let alt_address: Pubkey = prompt_input_data("Enter ALT Address :");
+                show_spinner( self.spinner_msg(), freeze_table(ctx, alt_address)).await;
             }
             
             AltCommand::Deactivate => {
-                show_spinner( self.spinner_msg(), deactivate_lookup_table(ctx)).await;
+                let alt_address: Pubkey = prompt_input_data("Enter ALT Address :");
+                show_spinner( self.spinner_msg(), deactivate_table(ctx, alt_address)).await;
             }
             
             AltCommand::Close => {
-                show_spinner( self.spinner_msg(), close_lookup_table(ctx)).await;
+                let alt_address: Pubkey = prompt_input_data("Enter ALT Address :");
+                let recipient_input: String = prompt_input_data("Enter Recipient Address (leave empty for self) :");
+                let recipient_address = if recipient_input.trim().is_empty() {
+                    *ctx.pubkey()
+                } else {                                                                   
+                    recipient_input.parse()?                                                             
+                }; 
+                show_spinner( self.spinner_msg(), close_table(ctx, alt_address, recipient_address)).await;
             }
             
             AltCommand::GoBack => {
@@ -160,14 +169,32 @@ async fn get_lookup_table(ctx: &ScillaContext, pubkey: &Pubkey) -> anyhow::Resul
     Ok(())
 }
 
-async fn freeze_lookup_table(_ctx: &ScillaContext) -> anyhow::Result<()> {
-    todo!();
-    // Ok(())
+async fn freeze_table(ctx: &ScillaContext, alt_address: Pubkey) -> anyhow::Result<()> {
+    let instruction = freeze_lookup_table(alt_address, ctx.keypair().pubkey());
+    let signature = build_and_send_tx(ctx, &[instruction], &[ctx.keypair()]).await?;
+
+    println!(
+        "{}\n{}\n{}",
+        style("Address Lookup Table Frozen successfully!").yellow().bold(),
+        style(format!("ALT Address: {alt_address}")).cyan(),
+        style(format!("Signature: {signature}")).green()
+    );
+
+    Ok(())
 }
 
-async fn deactivate_lookup_table(_ctx: &ScillaContext) -> anyhow::Result<()> {
-    todo!();
-    // Ok(())
+async fn deactivate_table(ctx: &ScillaContext, alt_address: Pubkey) -> anyhow::Result<()> {
+    let instruction = deactivate_lookup_table(alt_address, ctx.keypair().pubkey());
+    let signature = build_and_send_tx(ctx, &[instruction], &[ctx.keypair()]).await?;
+
+    println!(
+        "{}\n{}\n{}",
+        style("Address Lookup Table Deactivated successfully!").yellow().bold(),
+        style(format!("ALT Address: {alt_address}")).cyan(),
+        style(format!("Signature: {signature}")).green()
+    );
+
+    Ok(())
 }
 
 async fn extend_table(ctx: &ScillaContext, alt_address: Pubkey, address_strings: &str) -> anyhow::Result<()> {
@@ -179,7 +206,7 @@ async fn extend_table(ctx: &ScillaContext, alt_address: Pubkey, address_strings:
 
     println!(
         "{}\n{}\n{}\n{}",
-        style("Lookup Table extended successfully!").yellow().bold(),
+        style("Lookup Table Extended successfully!").yellow().bold(),
         style(format!("ALT Address: {alt_address}")).cyan(),
         style(format!("Addresses Added: {}", address_len)).cyan(),
         style(format!("Signature: {signature}")).green()
@@ -187,7 +214,16 @@ async fn extend_table(ctx: &ScillaContext, alt_address: Pubkey, address_strings:
     Ok(())
 }
 
-async fn close_lookup_table(_ctx: &ScillaContext) -> anyhow::Result<()> {
-    todo!();
-    // Ok(())
+async fn close_table(ctx: &ScillaContext, alt_address: Pubkey, recipient_address: Pubkey) -> anyhow::Result<()> {
+    let instruction = close_lookup_table(alt_address, ctx.keypair().pubkey(), recipient_address);
+    let signature = build_and_send_tx(ctx, &[instruction], &[ctx.keypair()]).await?;
+
+    println!(
+        "{}\n{}\n{}",
+        style("Address Lookup Table Closed successfully!").yellow().bold(),
+        style(format!("ALT Address: {alt_address}")).cyan(),
+        style(format!("Signature: {signature}")).green()
+    );
+
+    Ok(())
 }
