@@ -1,16 +1,7 @@
 use {
     crate::{
         commands::{
-            Command,
-            account::AccountCommand,
-            cluster::ClusterCommand,
-            config::ConfigCommand,
-            main_command::MainCommand,
-            navigation::NavigationTarget,
-            program::{ProgramCommand, ProgramShared},
-            stake::StakeCommand,
-            transaction::TransactionCommand,
-            vote::VoteCommand,
+            Command, account::AccountCommand, alt::AltCommand, cluster::ClusterCommand, config::ConfigCommand, main_command::MainCommand, navigation::NavigationTarget, program::{ProgramCommand, ProgramShared}, stake::StakeCommand, transaction::TransactionCommand, vote::VoteCommand
         },
         constants::{DEVNET_RPC, MAINNET_RPC, TESTNET_RPC},
         context::ScillaContext,
@@ -31,6 +22,7 @@ pub fn prompt_main_section() -> anyhow::Result<impl Command> {
             MainCommand::Program,
             MainCommand::Vote,
             MainCommand::Transaction,
+            MainCommand::AddressLookupTable,
             MainCommand::ScillaConfig,
             MainCommand::Exit,
         ],
@@ -174,6 +166,24 @@ pub fn prompt_config_section() -> anyhow::Result<ConfigCommand> {
             ConfigCommand::Show,
             ConfigCommand::Edit,
             ConfigCommand::GoBack,
+        ],
+    )
+    .prompt()?;
+
+    Ok(choice)
+}
+
+pub fn prompt_alt_section() -> anyhow::Result<AltCommand> {
+    let choice = Select::new(
+        "ALT Command:",
+        vec![
+            AltCommand::Get,
+            AltCommand::Create,
+            AltCommand::Extend,
+            AltCommand::Deactivate,
+            AltCommand::Freeze,
+            AltCommand::Close,
+            AltCommand::GoBack,
         ],
     )
     .prompt()?;

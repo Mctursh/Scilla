@@ -13,6 +13,7 @@ pub mod program;
 pub mod stake;
 pub mod transaction;
 pub mod vote;
+pub mod alt;
 
 pub enum CommandFlow {
     Processed,

@@ -3,9 +3,9 @@ use {
         commands::{Command, CommandFlow, navigation::NavigationSection},
         context::ScillaContext,
         prompt::{
-            prompt_account_section, prompt_cluster_section, prompt_config_section,
-            prompt_program_section, prompt_stake_section, prompt_transaction_section,
-            prompt_vote_section,
+            prompt_account_section, prompt_alt_section, prompt_cluster_section,
+            prompt_config_section, prompt_program_section, prompt_stake_section,
+            prompt_transaction_section, prompt_vote_section,
         },
     },
     anyhow::Ok,
@@ -19,6 +19,7 @@ pub enum MainCommand {
     Program,
     Vote,
     Transaction,
+    AddressLookupTable,
     ScillaConfig,
     Exit,
 }
@@ -32,6 +33,7 @@ impl fmt::Display for MainCommand {
             MainCommand::Program => "Program",
             MainCommand::Vote => "Vote",
             MainCommand::Transaction => "Transaction",
+            MainCommand::AddressLookupTable => "Address Lookup Table",
             MainCommand::ScillaConfig => "Scilla Config",
             MainCommand::Exit => "Exit",
         };
@@ -51,6 +53,7 @@ impl Command for MainCommand {
             MainCommand::Vote => prompt_vote_section()?.process_command(ctx).await?,
             MainCommand::Transaction => prompt_transaction_section()?.process_command(ctx).await?,
             MainCommand::Program => prompt_program_section()?.process_command(ctx).await?,
+            MainCommand::AddressLookupTable => prompt_alt_section()?.process_command(ctx).await?,
             MainCommand::ScillaConfig => prompt_config_section()?.process_command(ctx).await?,
             MainCommand::Exit => {
                 return Ok(CommandFlow::Exit);
