@@ -5,6 +5,7 @@ use {
 };
 
 pub mod account;
+pub mod alt;
 pub mod cluster;
 pub mod config;
 pub mod main_command;
@@ -13,7 +14,6 @@ pub mod program;
 pub mod stake;
 pub mod transaction;
 pub mod vote;
-pub mod alt;
 
 pub enum CommandFlow {
     Processed,

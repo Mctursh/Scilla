@@ -165,11 +165,8 @@ pub fn parse_addresses_string_to_pubkeys(input: &str) -> anyhow::Result<Vec<Pubk
         .split([',', '\n', ' '])
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
-        .map(|s| {
-            Pubkey::from_str(s)
-                .map_err(|_| anyhow!("Invalid pubkey: {}", s))
-        })
-        .collect::<Result<Vec<_>, _>>() 
+        .map(|s| Pubkey::from_str(s).map_err(|_| anyhow!("Invalid pubkey: {}", s)))
+        .collect::<Result<Vec<_>, _>>()
 }
 
 /// Generic helper to deserialize bincode data with consistent error

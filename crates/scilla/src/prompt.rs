@@ -1,7 +1,17 @@
 use {
     crate::{
         commands::{
-            Command, account::AccountCommand, alt::AltCommand, cluster::ClusterCommand, config::ConfigCommand, main_command::MainCommand, navigation::NavigationTarget, program::{ProgramCommand, ProgramShared}, stake::StakeCommand, transaction::TransactionCommand, vote::VoteCommand
+            Command,
+            account::AccountCommand,
+            alt::AltCommand,
+            cluster::ClusterCommand,
+            config::ConfigCommand,
+            main_command::MainCommand,
+            navigation::NavigationTarget,
+            program::{ProgramCommand, ProgramShared},
+            stake::StakeCommand,
+            transaction::TransactionCommand,
+            vote::VoteCommand,
         },
         constants::{DEVNET_RPC, MAINNET_RPC, TESTNET_RPC},
         context::ScillaContext,
