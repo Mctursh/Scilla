@@ -380,4 +380,35 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_parse_addresses_string_valid_input() {
+        let result = parse_addresses_string_to_pubkeys(
+            "11111111111111111111111111111111,TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        );
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 2);
+    }
+
+    #[test]
+    fn test_parse_addresses_string_with_whitespace() {
+        let result = parse_addresses_string_to_pubkeys(
+            "  11111111111111111111111111111111  ,  TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA  ",
+        );
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 2);
+    }
+
+    #[test]
+    fn test_parse_addresses_string_invalid_pubkey() {
+        let result = parse_addresses_string_to_pubkeys("invalid,pubkey");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_addresses_string_empty_input() {
+        let result = parse_addresses_string_to_pubkeys("");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 0);
+    }
 }
