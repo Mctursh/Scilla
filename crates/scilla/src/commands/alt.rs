@@ -72,7 +72,23 @@ impl Command for AltCommand {
             .checked_push(NavigationSection::AddressLookupTable);
         match self {
             AltCommand::Create => {
-                show_spinner(self.spinner_msg(), create_table(ctx)).await;
+                let authority_input: String =
+                    prompt_input_data("Enter Authority Address (defaults to config keypair) :");
+                let authority_address = if authority_input.trim().is_empty() {
+                    *ctx.pubkey()
+                } else {
+                    authority_input.parse()?
+                };
+                
+                let payer_address_input: String =
+                    prompt_input_data("Enter Payer Address (defaults to config keypair) :");
+                let payer_address = if payer_address_input.trim().is_empty() {
+                    *ctx.pubkey()
+                } else {
+                    payer_address_input.parse()?
+                };
+                
+                show_spinner(self.spinner_msg(), create_table(ctx, authority_address, payer_address)).await;
             }
 
             AltCommand::Get => {
@@ -104,7 +120,7 @@ impl Command for AltCommand {
             AltCommand::Close => {
                 let alt_address: Pubkey = prompt_input_data("Enter ALT Address :");
                 let recipient_input: String =
-                    prompt_input_data("Enter Recipient Address (leave empty for self) :");
+                    prompt_input_data("Enter Recipient Address (defaults to config keypair) :");
                 let recipient_address = if recipient_input.trim().is_empty() {
                     *ctx.pubkey()
                 } else {
@@ -125,10 +141,10 @@ impl Command for AltCommand {
     }
 }
 
-async fn create_table(ctx: &ScillaContext) -> anyhow::Result<()> {
+async fn create_table(ctx: &ScillaContext, authority: Pubkey, payer: Pubkey) -> anyhow::Result<()> {
     let recent_slot = ctx.rpc().get_slot().await?;
     let (instruction, pubkey) =
-        create_lookup_table(ctx.keypair().pubkey(), ctx.keypair().pubkey(), recent_slot);
+        create_lookup_table(authority, payer, recent_slot);
 
     let signature = build_and_send_tx(ctx, &[instruction], &[ctx.keypair()]).await?;
 
