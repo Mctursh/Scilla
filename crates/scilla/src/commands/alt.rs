@@ -5,9 +5,7 @@ use {
             navigation::{NavigationSection, NavigationTarget},
         },
         context::ScillaContext,
-        misc::helpers::{
-            build_and_send_tx, parse_addresses_string_to_pubkeys, unpack_option_to_string,
-        },
+        misc::helpers::{build_and_send_tx, parse_addresses_string_to_pubkeys},
         prompt::prompt_input_data,
         ui::show_spinner,
     },
@@ -179,7 +177,12 @@ async fn get_lookup_table(ctx: &ScillaContext, pubkey: &Pubkey) -> anyhow::Resul
         .add_row(vec![Cell::new("LookUp Table Address"), Cell::new(pubkey)])
         .add_row(vec![
             Cell::new("Authority"),
-            Cell::new(unpack_option_to_string(&alt_table_data.meta.authority)),
+            Cell::new(
+                alt_table_data
+                    .meta
+                    .authority
+                    .map_or("None".to_string(), |a| a.to_string()),
+            ),
         ])
         .add_row(vec![
             Cell::new("Deactivation Slot"),

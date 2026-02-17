@@ -153,13 +153,6 @@ pub async fn fetch_account_with_epoch(
     )
 }
 
-pub fn unpack_option_to_string<T: std::fmt::Display>(opt: &Option<T>) -> String {
-    match opt {
-        Some(val) => val.to_string(),
-        None => "None".to_string(),
-    }
-}
-
 pub fn parse_addresses_string_to_pubkeys(input: &str) -> anyhow::Result<Vec<Pubkey>> {
     input
         .split([',', '\n', ' '])
