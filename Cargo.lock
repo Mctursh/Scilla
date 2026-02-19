@@ -2891,6 +2891,7 @@ dependencies = [
  "serde_json",
  "solana-account",
  "solana-account-decoder",
+ "solana-address-lookup-table-interface",
  "solana-clock",
  "solana-commitment-config",
  "solana-epoch-info",

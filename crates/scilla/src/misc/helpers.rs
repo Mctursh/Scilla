@@ -157,6 +157,15 @@ pub async fn fetch_account_with_epoch(
     )
 }
 
+pub fn parse_addresses_string_to_pubkeys(input: &str) -> anyhow::Result<Vec<Pubkey>> {
+    input
+        .split([',', '\n', ' '])
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+        .map(|s| Pubkey::from_str(s).map_err(|_| anyhow!("Invalid pubkey: {}", s)))
+        .collect::<Result<Vec<_>, _>>()
+}
+
 /// Generic helper to deserialize bincode data with consistent error
 /// context
 pub fn bincode_deserialize<T>(data: &[u8], ctx: &str) -> anyhow::Result<T>
@@ -377,5 +386,36 @@ mod tests {
         assert!(has_memo, "Transaction should contain memo instruction");
 
         Ok(())
+    }
+
+    #[test]
+    fn test_parse_addresses_string_valid_input() {
+        let result = parse_addresses_string_to_pubkeys(
+            "11111111111111111111111111111111,TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        );
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 2);
+    }
+
+    #[test]
+    fn test_parse_addresses_string_with_whitespace() {
+        let result = parse_addresses_string_to_pubkeys(
+            "  11111111111111111111111111111111  ,  TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA  ",
+        );
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 2);
+    }
+
+    #[test]
+    fn test_parse_addresses_string_invalid_pubkey() {
+        let result = parse_addresses_string_to_pubkeys("invalid,pubkey");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_addresses_string_empty_input() {
+        let result = parse_addresses_string_to_pubkeys("");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 0);
     }
 }
