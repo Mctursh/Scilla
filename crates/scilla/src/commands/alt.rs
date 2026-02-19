@@ -77,7 +77,7 @@ impl Command for AltCommand {
                 } else {
                     authority_input.parse()?
                 };
-                
+
                 let payer_address_input: String =
                     prompt_input_data("Enter Payer Address (defaults to config keypair) :");
                 let payer_address = if payer_address_input.trim().is_empty() {
@@ -85,8 +85,12 @@ impl Command for AltCommand {
                 } else {
                     payer_address_input.parse()?
                 };
-                
-                show_spinner(self.spinner_msg(), create_table(ctx, authority_address, payer_address)).await;
+
+                show_spinner(
+                    self.spinner_msg(),
+                    create_table(ctx, authority_address, payer_address),
+                )
+                .await;
             }
 
             AltCommand::Get => {
@@ -141,8 +145,7 @@ impl Command for AltCommand {
 
 async fn create_table(ctx: &ScillaContext, authority: Pubkey, payer: Pubkey) -> anyhow::Result<()> {
     let recent_slot = ctx.rpc().get_slot().await?;
-    let (instruction, pubkey) =
-        create_lookup_table(authority, payer, recent_slot);
+    let (instruction, pubkey) = create_lookup_table(authority, payer, recent_slot);
 
     let signature = build_and_send_tx(ctx, &[instruction], &[ctx.keypair()]).await?;
 
