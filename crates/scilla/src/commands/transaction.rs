@@ -500,7 +500,7 @@ async fn simulate_transaction(
         ]);
         let mut display_idx = 1;
         let mut has_rows = false;
-        for (pre_amt, post_amt) in pre.into_iter().zip(post.into_iter()) {
+        for (pre_amt, post_amt) in pre.into_iter().zip(post) {
             if pre_amt == 1 && post_amt == 1 {
                 continue;
             }
@@ -573,11 +573,7 @@ async fn simulate_transaction(
             Cell::new("Post").add_attribute(comfy_table::Attribute::Bold),
         ]);
 
-        for (idx, (pre, post)) in pre_tokens
-            .into_iter()
-            .zip(post_tokens.into_iter())
-            .enumerate()
-        {
+        for (idx, (pre, post)) in pre_tokens.into_iter().zip(post_tokens).enumerate() {
             tok_table.add_row(vec![
                 Cell::new(idx),
                 Cell::new(pre.mint),

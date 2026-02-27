@@ -3,6 +3,7 @@ use {
         commands::{
             Command,
             account::AccountCommand,
+            address::AddressCommand,
             alt::AltCommand,
             cluster::ClusterCommand,
             config::ConfigCommand,
@@ -34,6 +35,7 @@ pub fn prompt_main_section() -> anyhow::Result<impl Command> {
             MainCommand::Transaction,
             MainCommand::AddressLookupTable,
             MainCommand::ScillaConfig,
+            MainCommand::Address,
             MainCommand::Exit,
         ],
     )
@@ -169,6 +171,20 @@ pub fn prompt_transaction_section() -> anyhow::Result<TransactionCommand> {
     Ok(choice)
 }
 
+pub fn prompt_address_section() -> anyhow::Result<AddressCommand> {
+    let choice = Select::new(
+        "Address Command:",
+        vec![
+            AddressCommand::Address,
+            AddressCommand::DerivePda,
+            AddressCommand::GoBack,
+        ],
+    )
+    .prompt()?;
+
+    Ok(choice)
+}
+
 pub fn prompt_config_section() -> anyhow::Result<ConfigCommand> {
     let choice = Select::new(
         "ScillaConfig Command:",
@@ -271,11 +287,7 @@ pub fn prompt_keypair_path(msg: &str, ctx: &ScillaContext) -> PathBuf {
             },
         };
 
-        let input = if input.trim().is_empty() {
-            &default_path
-        } else {
-            &input
-        };
+        let input = input.trim();
 
         match PathBuf::from_str(input) {
             Ok(value) => return value,
