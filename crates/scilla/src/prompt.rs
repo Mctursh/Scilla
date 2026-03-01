@@ -163,6 +163,7 @@ pub fn prompt_transaction_section() -> anyhow::Result<TransactionCommand> {
             TransactionCommand::FetchTransaction,
             TransactionCommand::SendTransaction,
             TransactionCommand::SimulateTransaction,
+            TransactionCommand::DecodeTransaction,
             TransactionCommand::GoBack,
         ],
     )
