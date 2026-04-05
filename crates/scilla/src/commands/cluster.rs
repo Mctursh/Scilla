@@ -388,8 +388,8 @@ async fn fetch_recent_prioritization_fee(ctx: &ScillaContext) -> anyhow::Result<
     let mut fee_values: Vec<u64> = fees.iter().map(|f| f.prioritization_fee).collect();
     fee_values.sort();
 
-    let min_fee = fee_values.iter().min().unwrap_or(&0);
-    let max_fee = fee_values.iter().max().unwrap_or(&0);
+    let min_fee = fee_values.first().unwrap_or(&0);
+    let max_fee = fee_values.last().unwrap_or(&0);
     let avg_fee = fee_values.iter().sum::<u64>() / fee_values.len() as u64;
     let median_fee = fee_values[fee_values.len() / 2];
 
