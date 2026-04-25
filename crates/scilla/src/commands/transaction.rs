@@ -24,6 +24,7 @@ pub enum TransactionCommand {
     FetchTransaction,
     SendTransaction,
     SimulateTransaction,
+    DecodeTransaction,
     GoBack,
 }
 
@@ -35,6 +36,7 @@ impl TransactionCommand {
             Self::FetchTransaction => "Fetching full transaction data…",
             Self::SendTransaction => "Sending transaction…",
             Self::SimulateTransaction => "Simulating transaction…",
+            Self::DecodeTransaction => "Decoding transaction…",
             Self::GoBack => "Going back…",
         }
     }
@@ -48,6 +50,7 @@ impl fmt::Display for TransactionCommand {
             Self::FetchTransaction => "Fetch Transaction",
             Self::SendTransaction => "Send Transaction",
             Self::SimulateTransaction => "Simulate Transaction",
+            Self::DecodeTransaction => "Decode Transaction",
             Self::GoBack => "Go back",
         })
     }
@@ -113,6 +116,19 @@ impl Command for TransactionCommand {
                     simulate_transaction(ctx, encoding, &encoded_tx, relaxed),
                 )
                 .await;
+            }
+            TransactionCommand::DecodeTransaction => {
+                println!(
+                    "{}",
+                    style("Note: Only VersionedTransaction format is supported")
+                        .yellow()
+                        .dim()
+                );
+
+                let encoding = prompt_encoding_options();
+                let encoded_tx: String = prompt_input_data("Enter encoded transaction:");
+
+                decode_transaction(encoding, &encoded_tx)?;
             }
             TransactionCommand::GoBack => {
                 return Ok(CommandFlow::NavigateTo(NavigationTarget::PreviousSection));
@@ -605,6 +621,183 @@ async fn simulate_transaction(
         };
         addr_table.add_row(vec![Cell::new(writable), Cell::new(readonly)]);
         println!("{addr_table}");
+    }
+
+    Ok(())
+}
+
+fn decode_transaction(encoding: UiTransactionEncoding, encoded_tx: &str) -> anyhow::Result<()> {
+    let tx = decode_and_deserialize_transaction(encoding, encoded_tx)?;
+
+    let mut table = Table::new();
+    table.load_preset(UTF8_FULL).set_header(vec![
+        Cell::new("#")
+            .add_attribute(comfy_table::Attribute::Bold)
+            .fg(comfy_table::Color::Cyan),
+        Cell::new("Signature")
+            .add_attribute(comfy_table::Attribute::Bold)
+            .fg(comfy_table::Color::Cyan),
+    ]);
+
+    for (idx, sig) in tx.signatures.iter().enumerate() {
+        table.add_row(vec![Cell::new(idx), Cell::new(sig)]);
+    }
+
+    println!("\n{}", style("SIGNATURES").green().bold());
+    println!("{table}");
+
+    match &tx.message {
+        solana_message::VersionedMessage::Legacy(msg) => {
+            display_legacy_message(msg)?;
+        }
+        solana_message::VersionedMessage::V0(msg) => {
+            display_v0_message(msg)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn display_legacy_message(msg: &solana_message::legacy::Message) -> anyhow::Result<()> {
+    let mut msg_table = Table::new();
+    msg_table
+        .load_preset(UTF8_FULL)
+        .set_header(vec![
+            Cell::new("Field")
+                .add_attribute(comfy_table::Attribute::Bold)
+                .fg(comfy_table::Color::Cyan),
+            Cell::new("Value")
+                .add_attribute(comfy_table::Attribute::Bold)
+                .fg(comfy_table::Color::Cyan),
+        ])
+        .add_row(vec![Cell::new("Format"), Cell::new("Legacy")])
+        .add_row(vec![
+            Cell::new("Recent Blockhash"),
+            Cell::new(msg.recent_blockhash),
+        ])
+        .add_row(vec![
+            Cell::new("Account Keys"),
+            Cell::new(msg.account_keys.len()),
+        ])
+        .add_row(vec![
+            Cell::new("Instructions"),
+            Cell::new(msg.instructions.len()),
+        ]);
+
+    println!("\n{}", style("MESSAGE").green().bold());
+    println!("{msg_table}");
+
+    let mut accounts_table = Table::new();
+    accounts_table.load_preset(UTF8_FULL).set_header(vec![
+        Cell::new("#").add_attribute(comfy_table::Attribute::Bold),
+        Cell::new("Pubkey").add_attribute(comfy_table::Attribute::Bold),
+        Cell::new("Signer").add_attribute(comfy_table::Attribute::Bold),
+        Cell::new("Writable").add_attribute(comfy_table::Attribute::Bold),
+    ]);
+
+    for (idx, key) in msg.account_keys.iter().enumerate() {
+        let is_signer = idx < msg.header.num_required_signatures as usize;
+        let is_writable = msg.is_maybe_writable(idx, None);
+        accounts_table.add_row(vec![
+            Cell::new(idx),
+            Cell::new(key),
+            Cell::new(if is_signer { "✓" } else { "" }),
+            Cell::new(if is_writable { "✓" } else { "" }),
+        ]);
+    }
+
+    println!("\n{}", style("ACCOUNT KEYS").cyan().bold());
+    println!("{accounts_table}");
+
+    println!("\n{}", style("INSTRUCTIONS").cyan().bold());
+    for (idx, ix) in msg.instructions.iter().enumerate() {
+        let program_id = &msg.account_keys[ix.program_id_index as usize];
+        println!(
+            "  {}. Program: {} | Accounts: {:?} | Data: {} bytes",
+            idx,
+            program_id,
+            ix.accounts,
+            ix.data.len()
+        );
+    }
+
+    Ok(())
+}
+
+fn display_v0_message(msg: &solana_message::v0::Message) -> anyhow::Result<()> {
+    let mut msg_table = Table::new();
+    msg_table
+        .load_preset(UTF8_FULL)
+        .set_header(vec![
+            Cell::new("Field")
+                .add_attribute(comfy_table::Attribute::Bold)
+                .fg(comfy_table::Color::Cyan),
+            Cell::new("Value")
+                .add_attribute(comfy_table::Attribute::Bold)
+                .fg(comfy_table::Color::Cyan),
+        ])
+        .add_row(vec![Cell::new("Format"), Cell::new("V0")])
+        .add_row(vec![
+            Cell::new("Recent Blockhash"),
+            Cell::new(msg.recent_blockhash),
+        ])
+        .add_row(vec![
+            Cell::new("Static Account Keys"),
+            Cell::new(msg.account_keys.len()),
+        ])
+        .add_row(vec![
+            Cell::new("Instructions"),
+            Cell::new(msg.instructions.len()),
+        ])
+        .add_row(vec![
+            Cell::new("Address Table Lookups"),
+            Cell::new(msg.address_table_lookups.len()),
+        ]);
+
+    println!("\n{}", style("MESSAGE").green().bold());
+    println!("{msg_table}");
+
+    let mut accounts_table = Table::new();
+    accounts_table.load_preset(UTF8_FULL).set_header(vec![
+        Cell::new("#").add_attribute(comfy_table::Attribute::Bold),
+        Cell::new("Pubkey").add_attribute(comfy_table::Attribute::Bold),
+        Cell::new("Signer").add_attribute(comfy_table::Attribute::Bold),
+        Cell::new("Writable").add_attribute(comfy_table::Attribute::Bold),
+    ]);
+
+    for (idx, key) in msg.account_keys.iter().enumerate() {
+        let is_signer = idx < msg.header.num_required_signatures as usize;
+        let is_writable = msg.is_maybe_writable(idx, None);
+        accounts_table.add_row(vec![
+            Cell::new(idx),
+            Cell::new(key),
+            Cell::new(if is_signer { "✓" } else { "" }),
+            Cell::new(if is_writable { "✓" } else { "" }),
+        ]);
+    }
+
+    println!("\n{}", style("STATIC ACCOUNT KEYS").cyan().bold());
+    println!("{accounts_table}");
+
+    if !msg.address_table_lookups.is_empty() {
+        println!("\n{}", style("ADDRESS TABLE LOOKUPS").cyan().bold());
+        for (idx, lookup) in msg.address_table_lookups.iter().enumerate() {
+            println!("  {}. Table: {}", idx, lookup.account_key);
+            println!("      Writable indexes: {:?}", lookup.writable_indexes);
+            println!("      Readonly indexes: {:?}", lookup.readonly_indexes);
+        }
+    }
+
+    println!("\n{}", style("INSTRUCTIONS").cyan().bold());
+    for (idx, ix) in msg.instructions.iter().enumerate() {
+        let program_id = &msg.account_keys[ix.program_id_index as usize];
+        println!(
+            "  {}. Program: {} | Accounts: {:?} | Data: {} bytes",
+            idx,
+            program_id,
+            ix.accounts,
+            ix.data.len()
+        );
     }
 
     Ok(())
