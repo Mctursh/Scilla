@@ -4,7 +4,7 @@ use {
             Command, CommandFlow,
             navigation::{NavigationSection, NavigationTarget},
         },
-        constants::{LAMPORTS_PER_SOL, SLOTS_TAKEN},
+        constants::LAMPORTS_PER_SOL,
         context::ScillaContext,
         ui::show_spinner,
     },
@@ -425,11 +425,18 @@ async fn fetch_recent_prioritization_fee(ctx: &ScillaContext) -> anyhow::Result<
         Cell::new("Fee (micro-lamports/CU)").add_attribute(comfy_table::Attribute::Bold),
     ]);
 
-    for fee in recent_fees.iter().take(SLOTS_TAKEN) {
+    const SLOTS_SHOWN: usize = 10;
+
+    for fee in recent_fees.iter().take(SLOTS_SHOWN) {
         detail_table.add_row(vec![Cell::new(fee.slot), Cell::new(fee.prioritization_fee)]);
     }
 
-    println!("\n{}", style("RECENT SLOTS").green().bold());
+    println!(
+        "\n{}",
+        style(format!("RECENT SLOTS (last {})", SLOTS_SHOWN))
+            .green()
+            .bold()
+    );
     println!("{detail_table}");
 
     Ok(())
